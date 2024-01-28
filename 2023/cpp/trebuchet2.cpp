@@ -8,6 +8,8 @@
 
 class Node {
 public:	
+	// fixed sized array fields are automatically handled
+	// when it goes out of scope
 	Node* children[26];
 	bool terminal;
 	char value;
@@ -17,34 +19,18 @@ public:
 		: value(val)
 		, terminal(isTerminal)
 	{}
-
-	~Node() {
-		for (int i = 0; i < 26; i++) {
-			if (children[i] != nullptr) {
-				children[i]->~Node();
-				delete children[i];
-			}
-			free(children);
-		}
-	}
-
+	
+	~Node() {}
 };
 
 class Trie {
 	Node* root;
 	
 public:
-
+	// only need to match new to delete (on pointers)
 	Trie(): root(new Node()) {}
 
 	~Trie() {
-		if (!root) return;
-		for (Node* node : root->children) {
-			if (node) {
-				node->~Node();
-			}
-		}
-		free(root->children);
 		delete root;
 	}
 
@@ -72,11 +58,6 @@ public:
 	}
 };
 
-std::unordered_map<std::string, int> mapper = {
-    {"zero", 0}, {"one", 1}, {"two", 2},   {"three", 3}, {"four", 4},
-    {"five", 5}, {"six", 6}, {"seven", 7}, {"eight", 8}, {"nine", 9},
-};
-
 // main function docs:
 // https://learn.microsoft.com/en-us/cpp/cpp/main-function-command-line-args?view=msvc-170
 int main(int argc, char *argv[]) {
@@ -85,10 +66,14 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+	std::unordered_map<std::string, int> mapper = {
+  	  {"zero", 0}, {"one", 1}, {"two", 2},   {"three", 3}, {"four", 4},
+    	{"five", 5}, {"six", 6}, {"seven", 7}, {"eight", 8}, {"nine", 9},
+	};
 	// init helpers
-	Trie trie = Trie();
+	Trie *trie = new Trie();
 	for (auto m : mapper) {
-		trie.insert(m.first);
+		trie->insert(m.first);
 	}
 
   // cpp text file reading: https://cplusplus.com/doc/tutorial/files/
@@ -113,12 +98,12 @@ int main(int argc, char *argv[]) {
 					if (mapper.count(window)) {
 						last = mapper[window];
 						window = c;
-					} else if (!trie.search(window)) {
+					} else if (!trie->search(window)) {
 						// don't discard whole string
-						while (window.size() && !trie.search(window)) {
+						while (window.size() && !trie->search(window)) {
 							window.erase(0, 1);
 						}
-						if (!trie.search(window)) {
+						if (!trie->search(window)) {
 							window.erase(0, 1);
 						}
 					}
@@ -134,6 +119,7 @@ int main(int argc, char *argv[]) {
     }
   }
   std::cout << "answer is: " << total << std::endl;
-	trie.~Trie();
+	datafile.close();
+	delete trie;
   return 0;
 }
